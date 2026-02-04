@@ -35,6 +35,7 @@ export default function PreviewPage() {
   const navigate = useNavigate();
   const iframeRef = useRef(null);
   const toastTimerRef = useRef(null);
+  const liveHtmlRef = useRef("");
 
   const {
     websiteUrl,
@@ -45,7 +46,6 @@ export default function PreviewPage() {
 
   const [toast, setToast] = useState("");
   const [selected, setSelected] = useState(null);
-  // { kind: "text" | "img", rfId, value }
 
   const [busy, setBusy] = useState(false);
   const [builderTheme, setBuilderTheme] = useState(DEFAULT_THEME);
@@ -68,21 +68,15 @@ export default function PreviewPage() {
 
   /* 🔒 Preserve scroll position */
   const syncFromIframe = useCallback(() => {
-    const iframe = iframeRef.current;
     const doc = getIframeDoc();
-    if (!doc || !iframe) return;
-
-    const scrollY = iframe.contentWindow.scrollY;
+    if (!doc) return;
 
     doc.querySelectorAll("script[data-reforge-builder]").forEach((s) => s.remove());
     doc.getElementById("__reforge_builder_hint")?.remove();
 
-    setGeneratedHtml(doc.body.innerHTML || "");
-
-    requestAnimationFrame(() => {
-      iframe.contentWindow.scrollTo(0, scrollY);
-    });
-  }, [setGeneratedHtml]);
+    // store without re-rendering iframe
+    liveHtmlRef.current = doc.body.innerHTML || "";
+  }, []);
 
   /* ---------------- THEME CSS ---------------- */
 
@@ -217,6 +211,10 @@ ${builderOverlay}
   /* ---------------- MESSAGE HANDLER ---------------- */
 
   useEffect(() => {
+      liveHtmlRef.current = generatedHtml || "";
+    }, []);
+  
+  useEffect(() => {
     const handler = (e) => {
       if (e?.data?.type === "RF_SELECT") {
         setSelected({
@@ -278,7 +276,7 @@ ${builderOverlay}
 <style>${themeStyle}</style>
 </head>
 <body>
-${generatedHtml}
+${liveHtmlRef.current || generatedHtml}
 </body>
 </html>
 `;
