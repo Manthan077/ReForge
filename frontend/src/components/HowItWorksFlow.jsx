@@ -21,7 +21,7 @@ const STEPS = [
   },
   {
     n: "03",
-    title: "Open Builder Preview",
+    title: "Open Builder Workspace",
     short: "See the site in an isolated sandbox.",
     backTitle: "What happens here",
     backBody:

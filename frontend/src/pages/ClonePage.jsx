@@ -413,7 +413,7 @@ export default function ClonePage() {
       <section className="px-6 pt-0 pb-14 flex justify-center">
         <div className="w-full max-w-6xl">
           {/* TOP ROW */}
-          <div className="grid grid-cols-3 items-start pt-8">
+          <div className="grid grid-cols-3 items-center pt-12 pb-8 gap-6">
             <div className="flex justify-start pt-1">
               <div className="px-4 py-2 rounded-full border border-[var(--border-subtle)] bg-white/5 text-sm text-[var(--text-secondary)] flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-400" />
@@ -423,12 +423,12 @@ export default function ClonePage() {
 
             <div className="flex justify-center">
               <div className="flex items-center gap-5 sm:gap-6">
-                <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border border-[var(--border-subtle)] bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full border border-[var(--border-subtle)] bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
                   <img src={LOGO_SRC} alt="ReForge logo" className="h-full w-full object-cover" />
                 </div>
 
                 <div className="text-left">
-                  <h1 className="text-5xl sm:text-7xl font-semibold tracking-tight leading-none">
+                  <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
                     REFORGE
                   </h1>
                   <div className="mt-2 text-sm sm:text-base text-[var(--text-secondary)]">
@@ -450,7 +450,7 @@ export default function ClonePage() {
           </div>
 
           <p className="mt-5 text-lg sm:text-xl text-[var(--text-secondary)] max-w-3xl mx-auto text-center leading-relaxed">
-            Clone a website frontend into a sandbox preview, then rebuild a fresh UI with the same
+            Clone any public website frontend into a sandbox preview, then rebuild a fresh UI with the same
             structure using Builder.
           </p>
 
@@ -820,7 +820,7 @@ export default function ClonePage() {
                   <div className="rounded-2xl border border-[var(--border-subtle)] bg-white/5 p-5">
                     <div className="font-semibold">What it does</div>
                     <div className="mt-2 text-[var(--text-secondary)] leading-relaxed">
-                      URL → clone frontend (HTML/CSS) → sandbox preview → ZIP export → Builder.
+                      URL → clone frontend (HTML/CSS) → sandbox preview → Builder → ZIP export.
                     </div>
                   </div>
 
