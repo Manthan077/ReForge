@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-main: #0a0a0b;
+  --bg-card: #111114;
+  --border-subtle: #27272a;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+}
