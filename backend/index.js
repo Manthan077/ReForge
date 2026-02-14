@@ -13,21 +13,17 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// ✅ Express v5 safe OPTIONS handler
 app.options(/.*/, cors());
 
-// ✅ Single request logger
 app.use((req, res, next) => {
   console.log(`➡️ ${new Date().toISOString()} ${req.method} ${req.url}`);
   next();
 });
 
-// ✅ Health
 app.get("/ping", (req, res) => {
   res.json({ ok: true, time: Date.now() });
 });
 
-// ✅ Safety: server timeout
 app.use((req, res, next) => {
   res.setTimeout(180000, () => {
     console.error("❌ Response timeout:", req.method, req.url);
@@ -169,12 +165,10 @@ async function getRenderedHTML(url) {
 
   const page = await browser.newPage();
 
-  // ✅ Block only heavy resources, DO NOT block fonts (important for styling)
   await page.setRequestInterception(true);
   page.on("request", (req) => {
     const type = req.resourceType();
 
-    // Block only videos & tracking
     if (["media", "eventsource", "websocket"].includes(type)) {
       return req.abort();
     }
@@ -353,7 +347,6 @@ app.post("/clone-static", async (req, res) => {
         $(el).attr("data-src") ||
         $(el).attr("data-original");
 
-      // 🔒 Remove srcset (offline-safe)
       $(el).removeAttr("srcset");
       $(el).removeAttr("sizes");
 
@@ -410,7 +403,74 @@ app.post("/clone-static", async (req, res) => {
   }
 });
 
-/* ---------------- START ---------------- */
+/* ---------------- EXPORT WITH EDITS ---------------- */
+app.post("/export-with-edits", async (req, res) => {
+  const { websiteUrl, editedHtml, themeCss } = req.body;
+  if (!websiteUrl || !editedHtml) {
+    return res.status(400).json({ error: "websiteUrl and editedHtml required" });
+  }
+
+  try {
+    const zip = new JSZip();
+    const assetsMap = new Map();
+    const jobs = [];
+
+    const $ = cheerio.load(editedHtml);
+
+    $("img").each((_, el) => {
+      const src = $(el).attr("src");
+      const abs = toAbsoluteUrl(src, websiteUrl);
+      
+      if (!abs || abs.startsWith("data:") || abs.startsWith("blob:")) return;
+
+      const ext = pickExtFromUrl(abs, "png");
+      const folder = ext === "ico" ? "favicon" : "images";
+      
+      jobs.push(
+        (async () => {
+          const localPath = await ensureAssetDownloaded({ 
+            absUrl: abs, 
+            folder, 
+            fallbackExt: ext, 
+            assetsMap, 
+            zip 
+          });
+          
+          if (localPath) {
+            $(el).attr("src", localPath);
+          }
+        })()
+      );
+    });
+
+    await Promise.all(jobs);
+
+    const finalHtml = `
+    <!doctype html>
+    <html>
+    <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <style>${themeCss || ""}</style>
+    </head>
+    <body>
+    ${$.html()}
+    </body>
+    </html>
+    `;
+
+    zip.file("index.html", finalHtml);
+
+    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="reforge-export.zip"');
+    res.send(zipBuffer);
+  } catch (error) {
+    console.error("Export with edits failed:", error);
+    if (!res.headersSent) res.status(500).json({ error: "Export failed" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
