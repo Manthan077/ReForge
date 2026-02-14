@@ -275,28 +275,6 @@ export default function ClonePage() {
     }
   };
 
-  const handleRebuild = () => {
-    const fixedUrl = normalizedUrl;
-    if (!fixedUrl || !isValidHttpUrl(fixedUrl)) {
-      setMessage("Enter a valid URL before starting builder.");
-      return;
-    }
-
-    if (!detectedStructure || detectedStructure.length === 0) {
-      setMessage("No detected structure yet. Click “Extract Frontend” first.");
-      return;
-    }
-
-    // ✅ FIX: pass scraped CSS too (optional, but useful)
-    startRebuild(
-      normalizedUrl,
-      detectedStructure,
-      previewHtml,
-      typeof themeCss === "string" ? themeCss : ""
-    );
-    navigate("/preview");
-  };
-
   const resetUI = () => {
     stopProgress();
     setStatus("idle");

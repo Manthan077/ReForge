@@ -4,31 +4,6 @@ import JSZip from "jszip";
 import { useAppContext } from "../context/appContextStore";
 import { useNavigate } from "react-router-dom";
 
-/* ---------------- CONSTANTS ---------------- */
-
-const FONT_OPTIONS = [
-  { label: "System", value: `ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial` },
-  { label: "Inter", value: `Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial` },
-  { label: "Poppins", value: `Poppins, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial` },
-  { label: "Montserrat", value: `Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial` },
-  { label: "Roboto", value: `Roboto, ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial` },
-  { label: "Playfair", value: `Playfair Display, ui-serif, Georgia, "Times New Roman"` },
-];
-
-const DEFAULT_THEME = {
-  fontFamily: FONT_OPTIONS[0].value,
-  bg: "#0b0b0b",
-  text: "#f5f5f5",
-  primary: "#8b9cff",
-  muted: "rgba(255,255,255,0.70)",
-  border: "rgba(255,255,255,0.14)",
-};
-
-/* ---------------- UTILS ---------------- */
-
-const clampHex = (v, fallback) =>
-  /^#[0-9a-fA-F]{3,6}$/.test(String(v || "")) ? v : fallback;
-
 /* ---------------- COMPONENT ---------------- */
 
 export default function PreviewPage() {
@@ -46,9 +21,8 @@ export default function PreviewPage() {
 
   const [toast, setToast] = useState("");
   const [selected, setSelected] = useState(null);
-
   const [busy, setBusy] = useState(false);
-  const [builderTheme, setBuilderTheme] = useState(DEFAULT_THEME);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const bodyOnly = useMemo(() => String(generatedHtml || ""), [generatedHtml]);
   const hasSite = bodyOnly.trim().length > 0;
@@ -58,13 +32,17 @@ export default function PreviewPage() {
   const showToast = (msg) => {
     setToast(msg);
     clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToast(""), 2000);
+    toastTimerRef.current = setTimeout(() => setToast(""), 3000);
   };
 
   const getIframeDoc = () =>
     iframeRef.current?.contentDocument ||
     iframeRef.current?.contentWindow?.document ||
     null;
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   /* 🔒 Preserve scroll position */
   const syncFromIframe = useCallback(() => {
@@ -78,28 +56,38 @@ export default function PreviewPage() {
     liveHtmlRef.current = doc.body.innerHTML || "";
   }, []);
 
+  /* ---------------- DYNAMIC STYLE INJECTION ---------------- */
+  
+  // Inject image counter-invert style dynamically without reloading iframe
+  useEffect(() => {
+    const doc = getIframeDoc();
+    if (!doc) return;
+
+    // Remove existing dark mode style if present
+    const existingStyle = doc.getElementById('__reforge_dark_mode_style');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Add new style if dark mode is active
+    if (isDarkMode) {
+      const style = doc.createElement('style');
+      style.id = '__reforge_dark_mode_style';
+      style.textContent = `
+        img, video, picture, [style*="background-image"] {
+          filter: invert(1) hue-rotate(180deg) !important;
+        }
+      `;
+      doc.head.appendChild(style);
+    }
+  }, [isDarkMode]);
+
   /* ---------------- THEME CSS ---------------- */
 
   const themeStyle = useMemo(() => {
-    const t = builderTheme;
-    return `
-:root{
-  --rf-bg:${clampHex(t.bg, DEFAULT_THEME.bg)};
-  --rf-text:${clampHex(t.text, DEFAULT_THEME.text)};
-  --rf-primary:${clampHex(t.primary, DEFAULT_THEME.primary)};
-  --rf-muted:${t.muted};
-  --rf-border:${t.border};
-  --rf-font:${t.fontFamily};
-}
-html,body{
-  background:var(--rf-bg);
-  color:var(--rf-text);
-  font-family:var(--rf-font);
-}
-a{color:inherit;}
-button{font-family:var(--rf-font);}
-`;
-  }, [builderTheme]);
+    // Keep empty to prevent iframe reload
+    return ``;
+  }, []);
 
   /* ---------------- BUILDER OVERLAY ---------------- */
 
@@ -130,6 +118,26 @@ button{font-family:var(--rf-font);}
 <div id="__reforge_builder_hint">
   Click text or image to edit
 </div>
+
+<script data-reforge-error-suppression>
+// Suppress all errors from scraped site scripts
+window.addEventListener('error', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  return true;
+}, true);
+
+// Suppress unhandled promise rejections
+window.addEventListener('unhandledrejection', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}, true);
+
+// Create stub functions for common missing functions
+window.w3_close_all_topnav = function() {};
+window.w3_open = function() {};
+window.w3_close = function() {};
+</script>
 
 <script data-reforge-builder>
 (function(){
@@ -163,7 +171,8 @@ button{font-family:var(--rf-font);}
         type:"RF_SELECT",
         kind:"img",
         rfId: ensureId(t),
-        value: t.getAttribute("src") || ""
+        value: t.getAttribute("src") || "",
+        alt: t.getAttribute("alt") || ""
       },"*");
       return;
     }
@@ -211,9 +220,9 @@ ${builderOverlay}
   /* ---------------- MESSAGE HANDLER ---------------- */
 
   useEffect(() => {
-      liveHtmlRef.current = generatedHtml || "";
-    }, []);
-  
+    liveHtmlRef.current = generatedHtml || "";
+  }, []);
+
   useEffect(() => {
     const handler = (e) => {
       if (e?.data?.type === "RF_SELECT") {
@@ -221,6 +230,7 @@ ${builderOverlay}
           kind: e.data.kind,
           rfId: e.data.rfId,
           value: e.data.value,
+          alt: e.data.alt || "",
         });
       }
     };
@@ -242,6 +252,22 @@ ${builderOverlay}
     showToast("Text updated");
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please select an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSelected({ ...selected, value: event.target.result });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const applyImageEdit = () => {
     const doc = getIframeDoc();
     if (!doc || !selected?.rfId) return;
@@ -260,38 +286,59 @@ ${builderOverlay}
   /* ---------------- EXPORT ---------------- */
 
   const downloadZip = async () => {
-    if (!hasSite) return;
+    if (!hasSite || !websiteUrl) return;
     setBusy(true);
+    showToast("Preparing export...");
 
     try {
+      // Sync any edits from the iframe
       syncFromIframe();
+      
+      const editedHtml = liveHtmlRef.current || generatedHtml;
 
-      const html = `
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<style>${themeCss || ""}</style>
-<style>${themeStyle}</style>
-</head>
-<body>
-${liveHtmlRef.current || generatedHtml}
-</body>
-</html>
-`;
+      showToast("Downloading all assets...");
 
-      const zip = new JSZip();
-      zip.file("index.html", html);
+      // Send edited HTML to backend to bundle with all assets
+      const res = await fetch("http://localhost:5000/export-with-edits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          websiteUrl,
+          editedHtml,
+          themeCss: themeCss || ""
+        }),
+      });
 
-      const blob = await zip.generateAsync({ type: "blob" });
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        throw new Error(errorText || "Export failed");
+      }
+
+      showToast("Generating ZIP...");
+
+      const blob = await res.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error("Empty file received");
+      }
+
+      showToast("Downloading...");
+
+      // Download the ZIP file
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "reforge-export.zip";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(a.href);
 
-      showToast("ZIP exported");
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        document.body.removeChild(a);
+      }, 200);
+
+      showToast("✅ ZIP exported successfully!");
+    } catch (err) {
+      console.error("Export failed:", err);
+      showToast("❌ Export failed - " + err.message);
     } finally {
       setBusy(false);
     }
@@ -305,18 +352,72 @@ ${liveHtmlRef.current || generatedHtml}
         <div className="grid lg:grid-cols-[1fr_420px] gap-6">
           {/* PREVIEW */}
           <div className="rounded-3xl border overflow-hidden bg-white">
-            <iframe
-              ref={iframeRef}
-              title="Preview"
-              className="w-full h-[80vh]"
-              sandbox="allow-scripts allow-same-origin"
-              srcDoc={iframeHtml}
-            />
+            <div
+              style={
+                isDarkMode
+                  ? {
+                      filter: "invert(1) hue-rotate(180deg)",
+                    }
+                  : {}
+              }
+            >
+              <iframe
+                ref={iframeRef}
+                title="Preview"
+                className="w-full h-[80vh]"
+                sandbox="allow-scripts allow-same-origin"
+                srcDoc={iframeHtml}
+                style={{
+                  colorScheme: "normal"
+                }}
+              />
+            </div>
           </div>
 
           {/* EDITOR */}
-          <div className="rounded-3xl border bg-white/5 p-5">
-            <div className="text-sm font-semibold mb-3">Editor</div>
+          <div className="rounded-3xl border bg-white/5 p-5 space-y-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold">Editor</div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/20 border text-xs">
+                  <span className="h-2 w-2 rounded-full bg-green-400"></span>
+                  <span className="text-[var(--text-secondary)]">
+                    {isDarkMode ? "Light" : "Dark"}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/20 border hover:bg-black/30 transition-colors text-xs"
+                  title={isDarkMode ? "Switch to Dark Mode" : "Switch to Light Mode"}
+                >
+                  {isDarkMode ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                      </svg>
+                      <span>Dark</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                      </svg>
+                      <span>Light</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
 
             {!selected && (
               <div className="text-sm text-[var(--text-secondary)]">
@@ -336,7 +437,7 @@ ${liveHtmlRef.current || generatedHtml}
                 />
                 <button
                   onClick={applyTextEdit}
-                  className="mt-3 w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold"
+                  className="w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold"
                 >
                   Apply Text
                 </button>
@@ -345,26 +446,79 @@ ${liveHtmlRef.current || generatedHtml}
 
             {selected?.kind === "img" && (
               <>
-                <input
-                  value={selected.value}
-                  onChange={(e) =>
-                    setSelected({ ...selected, value: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-2xl bg-black/20 border outline-none text-white"
-                />
-                <button
-                  onClick={applyImageEdit}
-                  className="mt-3 w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold"
-                >
-                  Apply Image
-                </button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-[var(--text-secondary)] mb-2 block">
+                      Upload from Device
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="block w-full px-4 py-3 rounded-2xl bg-black/20 border text-center cursor-pointer hover:bg-black/30 transition-colors"
+                    >
+                      <span className="text-sm">📁 Choose File</span>
+                    </label>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-white/10"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-[var(--rf-bg)] px-2 text-[var(--text-secondary)]">
+                        OR
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-[var(--text-secondary)] mb-2 block">
+                      Direct URL
+                    </label>
+                    <input
+                      value={selected.value}
+                      onChange={(e) =>
+                        setSelected({ ...selected, value: e.target.value })
+                      }
+                      placeholder="Paste image URL..."
+                      className="w-full px-4 py-3 rounded-2xl bg-black/20 border outline-none text-white"
+                    />
+                  </div>
+
+                  {selected.value && (
+                    <div className="rounded-xl overflow-hidden border">
+                      <img
+                        src={selected.value}
+                        alt="Preview"
+                        className="w-full h-32 object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={applyImageEdit}
+                    disabled={!selected.value}
+                    className="w-full px-5 py-3 rounded-2xl bg-white text-black font-semibold disabled:opacity-50"
+                  >
+                    Apply Image
+                  </button>
+                </div>
               </>
             )}
 
             <button
               onClick={downloadZip}
               disabled={busy}
-              className="mt-6 w-full px-5 py-3 rounded-2xl border"
+              className="w-full px-5 py-3 rounded-2xl border"
             >
               {busy ? "Exporting…" : "Export ZIP"}
             </button>
