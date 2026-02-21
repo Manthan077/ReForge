@@ -391,37 +391,55 @@ export default function ClonePage() {
       <section className="px-6 pt-0 pb-14 flex justify-center">
         <div className="w-full max-w-6xl">
           {/* TOP ROW */}
-          <div className="grid grid-cols-3 items-center pt-12 pb-8 gap-6">
-            <div className="flex justify-start pt-1">
+          <div className="flex flex-col items-center pt-28 pb-8 gap-4 md:grid md:grid-cols-3 md:items-center md:gap-6">
+
+            {/* Left pill — desktop only */}
+            <div className="hidden md:flex justify-start pt-1">
               <div className="px-4 py-2 rounded-full border border-[var(--border-subtle)] bg-white/5 text-sm text-[var(--text-secondary)] flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-400" />
                 Frontend Builder
               </div>
             </div>
 
+            {/* Center: logo + title */}
             <div className="flex justify-center">
-              <div className="flex items-center gap-5 sm:gap-6">
-                <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full border border-[var(--border-subtle)] bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-full border border-[var(--border-subtle)] bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
                   <img src={LOGO_SRC} alt="ReForge logo" className="h-full w-full object-cover" />
                 </div>
-
                 <div className="text-left">
-                  <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
+                  <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-tight">
                     REFORGE
                   </h1>
-                  <div className="mt-2 text-sm sm:text-base text-[var(--text-secondary)]">
+                  <div className="mt-1 text-xs sm:text-sm md:text-base text-[var(--text-secondary)]">
                     Extract • Clone • Make it yours
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-1">
+            {/* Right pill — desktop only */}
+            <div className="hidden md:flex justify-end pt-1">
               <button
                 onClick={() => setInfoOpen(true)}
                 className="px-5 py-2 rounded-full border border-[var(--border-subtle)] bg-white/5 hover:bg-white/10 transition text-sm text-[var(--text-secondary)] flex items-center gap-2"
               >
                 <span className="h-2 w-2 rounded-full bg-green-400" />
+                About
+              </button>
+            </div>
+
+            {/* Mobile-only pills row */}
+            <div className="flex md:hidden items-center gap-2 justify-center">
+              <div className="px-3 py-1.5 rounded-full border border-[var(--border-subtle)] bg-white/5 text-xs text-[var(--text-secondary)] flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                Frontend Builder
+              </div>
+              <button
+                onClick={() => setInfoOpen(true)}
+                className="px-3 py-1.5 rounded-full border border-[var(--border-subtle)] bg-white/5 text-xs text-[var(--text-secondary)] flex items-center gap-1.5"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
                 About
               </button>
             </div>
@@ -752,7 +770,7 @@ export default function ClonePage() {
                 </button>
 
                 <button
-                  className="px-6 py-3 rounded-2xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5 transition"
+                  className="px-6 py-3 rounded-2xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5 text-white transition"
                   onClick={() => {
                     startRebuild(
                       normalizedUrl,
@@ -769,7 +787,7 @@ export default function ClonePage() {
 
                 <button
                   onClick={resetUI}
-                  className="px-6 py-3 rounded-2xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5 transition"
+                  className="px-6 py-3 rounded-2xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-white/5 text-white transition"
                 >
                   Reset
                 </button>
