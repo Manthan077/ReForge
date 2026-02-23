@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { useAppContext } from "../context/appContextStore";
 import { useNavigate } from "react-router-dom";
 
+const API = import.meta.env.VITE_API_URL;
 /* ---------------- COMPONENT ---------------- */
 
 export default function PreviewPage() {
@@ -316,7 +317,7 @@ ${builderOverlay}
       showToast("Downloading all assets...");
 
       // Send edited HTML to backend to bundle with all assets
-      const res = await fetch("http://localhost:5000/export-with-edits", {
+      const res = await fetch(`${API}/export-with-edits`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

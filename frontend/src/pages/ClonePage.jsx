@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/appContextStore";
 import HowItWorksFlow from "../components/HowItWorksFlow";
 import QuickTestSites from "../components/QuickTestSites";
+const API = import.meta.env.VITE_API_URL;
 
 function isValidHttpUrl(value) {
   if (!value) return false;
@@ -190,7 +191,7 @@ export default function ClonePage() {
     startProgress();
 
     try {
-      const res = await fetch("http://localhost:5000/scrape", {
+      const res = await fetch(`${API}/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ websiteUrl: fixedUrl }),
@@ -243,7 +244,7 @@ export default function ClonePage() {
     setDownloading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/clone-static", {
+      const res = await fetch(`${API}/clone-static`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ websiteUrl: fixedUrl }),
