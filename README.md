@@ -103,8 +103,7 @@ npm install
 
 # Create .env file
 cat > .env << EOF
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/your_database_name
+MONGODB_URI=your_MongoDB_URI
 JWT_SECRET=your_super_secret_jwt_key_here
 EOF
 
